@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "real-estate-neural-network", "src\real-estate-neural-network.csproj", "{CDBDD65F-72B9-48D7-BDB9-AB72DEB5B075}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CDBDD65F-72B9-48D7-BDB9-AB72DEB5B075}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDBDD65F-72B9-48D7-BDB9-AB72DEB5B075}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDBDD65F-72B9-48D7-BDB9-AB72DEB5B075}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDBDD65F-72B9-48D7-BDB9-AB72DEB5B075}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
