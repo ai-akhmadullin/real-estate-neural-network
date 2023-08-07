@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "gCDdOIKKhNB6IIr76COatuXM/TK+lZbPsI7TkRZQS+nNB0wMiZy9JerUU8SZv53Wbx7JPFSgQxX28MBNfW3KDg==",
+  "dgSpecHash": "Po2hNKQ4zMOlEt0HAGDBVHAXmSQTNo+UxDNhDt6PeFQNv3RibbNuN60r3n7CQqLs5qU3ZugoBWb1l17RDKdygg==",
   "success": true,
-  "projectFilePath": "/Users/airat/Programs/real-estate-neural-network/src/real-estate-neural-network.csproj",
+  "projectFilePath": "/Users/airat/git/real-estate-neural-network/src/real-estate-neural-network.csproj",
   "expectedPackageFiles": [
     "/Users/airat/.nuget/packages/csvhelper/30.0.1/csvhelper.30.0.1.nupkg.sha512",
     "/Users/airat/.nuget/packages/mathnet.numerics/5.0.0/mathnet.numerics.5.0.0.nupkg.sha512"

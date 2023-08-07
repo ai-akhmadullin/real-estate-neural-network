@@ -90,11 +90,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/airat/Programs/real-estate-neural-network/src/real-estate-neural-network.csproj",
+      "projectUniqueName": "/Users/airat/git/real-estate-neural-network/src/real-estate-neural-network.csproj",
       "projectName": "real-estate-neural-network",
-      "projectPath": "/Users/airat/Programs/real-estate-neural-network/src/real-estate-neural-network.csproj",
+      "projectPath": "/Users/airat/git/real-estate-neural-network/src/real-estate-neural-network.csproj",
       "packagesPath": "/Users/airat/.nuget/packages/",
-      "outputPath": "/Users/airat/Programs/real-estate-neural-network/src/obj/",
+      "outputPath": "/Users/airat/git/real-estate-neural-network/src/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/airat/.nuget/NuGet/NuGet.Config"
