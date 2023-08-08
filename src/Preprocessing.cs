@@ -172,7 +172,6 @@ namespace RealEstate {
             features.AddRange(stateOneHot);
 
             return Vector<double>.Build.DenseOfEnumerable(features);
-
         }
 
         public static List<double> OneHotEncodeState(State state) {
