@@ -69,7 +69,7 @@ namespace RealEstate {
             }
 
             // Keep only those properties whose features are below the 95th percentile, thus removing the properties with peaked features.
-            properties = FilterByPercentile(properties, 0.95);
+            properties = FilterByPercentile(properties, 0.95).Result;
 
             // For each property if the value of the feature is null, replace it with an average value.
             FillMissingWithAverage(properties, p => p.zip_code, (p, value) => p.zip_code = value);
