@@ -105,20 +105,18 @@ namespace RealEstate {
         /// </summary>
         /// <param name="properties">List of properties to filter.</param>
         /// <returns>Filtered list of properties.</returns>
-        public static List<Property> FilterByPercentile(List<Property> properties, double percentile) {
+        public static async Task<List<Property>> FilterByPercentile(List<Property> properties, double percentile) {
             var priceTask = Task.Run(() => GetPercentile(properties.Where(p => p.price.HasValue).Select(p => p.price.Value), percentile));
             var bedTask = Task.Run(() => GetPercentile(properties.Where(p => p.bed.HasValue).Select(p => p.bed.Value), percentile));
             var bathTask = Task.Run(() => GetPercentile(properties.Where(p => p.bath.HasValue).Select(p => p.bath.Value), percentile));
             var acreLotTask = Task.Run(() => GetPercentile(properties.Where(p => p.acre_lot.HasValue).Select(p => p.acre_lot.Value), percentile));
             var houseSizeTask = Task.Run(() => GetPercentile(properties.Where(p => p.house_size.HasValue).Select(p => p.house_size.Value), percentile));
 
-            Task.WaitAll(priceTask, bedTask, bathTask, acreLotTask, houseSizeTask);
-
-            var price_percentile = priceTask.Result;
-            var bed_percentile = bedTask.Result;
-            var bath_percentile = bathTask.Result;
-            var acre_lot_percentile = acreLotTask.Result;
-            var house_size_percentile = houseSizeTask.Result;
+            var price_percentile = await priceTask;
+            var bed_percentile = await bedTask;
+            var bath_percentile = await bathTask;
+            var acre_lot_percentile = await acreLotTask;
+            var house_size_percentile = await houseSizeTask;
             
             // Return only those properties whose features are below the percentile.
             return properties.AsParallel().Where(p =>
@@ -128,6 +126,7 @@ namespace RealEstate {
                 p.acre_lot.HasValue && p.acre_lot.Value <= acre_lot_percentile &&
                 p.house_size.HasValue && p.house_size.Value <= house_size_percentile).ToList();
         }
+
 
         /// <summary>
         /// Computes the percentile value of a given sequence.
