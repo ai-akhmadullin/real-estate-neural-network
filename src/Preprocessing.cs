@@ -97,7 +97,7 @@ namespace RealEstate {
             });
 
             // Apply z-score normalization on the data before returning it.
-            return Standardize(properties);
+            return Standardize(properties, true);
         }
 
         /// <summary>
@@ -200,6 +200,62 @@ namespace RealEstate {
 
             return properties;
         }
+
+        /// <summary>
+        /// Standardizes the properties using either z-score normalization or min-max scaling.
+        /// </summary>
+        /// <param name="properties">List of properties to standardize.</param>
+        /// <param name="useZScore">If true, uses z-score normalization. If false, uses min-max scaling.</param>
+        /// <returns>Standardized list of properties.</returns>
+        public static List<Property> Standardize(List<Property> properties, bool useZScore = true) {
+            // Z-score normalization.
+            if (useZScore) {
+                double bed_mean = 0, bed_std = 0, bath_mean = 0, bath_std = 0, acre_lot_mean = 0, acre_lot_std = 0,
+                        zip_code_mean = 0, zip_code_std = 0, house_size_mean = 0, house_size_std = 0;
+
+                Parallel.Invoke(
+                    () => { bed_mean = properties.Average(p => p.bed.Value); bed_std = Math.Sqrt(properties.Average(p => Math.Pow(p.bed.Value - bed_mean, 2))); },
+                    () => { bath_mean = properties.Average(p => p.bath.Value); bath_std = Math.Sqrt(properties.Average(p => Math.Pow(p.bath.Value - bath_mean, 2))); },
+                    () => { acre_lot_mean = properties.Average(p => p.acre_lot.Value); acre_lot_std = Math.Sqrt(properties.Average(p => Math.Pow(p.acre_lot.Value - acre_lot_mean, 2))); },
+                    () => { zip_code_mean = properties.Average(p => p.zip_code.Value); zip_code_std = Math.Sqrt(properties.Average(p => Math.Pow(p.zip_code.Value - zip_code_mean, 2))); },
+                    () => { house_size_mean = properties.Average(p => p.house_size.Value); house_size_std = Math.Sqrt(properties.Average(p => Math.Pow(p.house_size.Value - house_size_mean, 2))); }
+                );
+
+                // New value = (x – μ) / σ  ,  where:
+                // x: Original value
+                // μ: Mean of data
+                // σ: Standard deviation of data
+                Parallel.ForEach(properties, property => {
+                    property.bed = (bed_std == 0) ? 0 : (property.bed.Value - bed_mean) / bed_std;
+                    property.bath = (bath_std == 0) ? 0 : (property.bath.Value - bath_mean) / bath_std;
+                    property.acre_lot = (acre_lot_std == 0) ? 0 : (property.acre_lot.Value - acre_lot_mean) / acre_lot_std;
+                    property.zip_code = (zip_code_std == 0) ? 0 : (property.zip_code.Value - zip_code_mean) / zip_code_std;
+                    property.house_size = (house_size_std == 0) ? 0 : (property.house_size.Value - house_size_mean) / house_size_std;
+                });
+            } 
+
+            // Min-max scaling
+            else {
+                // Define minimum and maximum values for each feature
+                double bed_min = properties.Min(p => p.bed.Value), bed_max = properties.Max(p => p.bed.Value);
+                double bath_min = properties.Min(p => p.bath.Value), bath_max = properties.Max(p => p.bath.Value);
+                double acre_lot_min = properties.Min(p => p.acre_lot.Value), acre_lot_max = properties.Max(p => p.acre_lot.Value);
+                double zip_code_min = properties.Min(p => p.zip_code.Value), zip_code_max = properties.Max(p => p.zip_code.Value);
+                double house_size_min = properties.Min(p => p.house_size.Value), house_size_max = properties.Max(p => p.house_size.Value);
+
+                // New value = (x - min) / (max - min)
+                Parallel.ForEach(properties, property => {
+                    property.bed = (bed_max - bed_min == 0) ? 0 : (property.bed.Value - bed_min) / (bed_max - bed_min);
+                    property.bath = (bath_max - bath_min == 0) ? 0 : (property.bath.Value - bath_min) / (bath_max - bath_min);
+                    property.acre_lot = (acre_lot_max - acre_lot_min == 0) ? 0 : (property.acre_lot.Value - acre_lot_min) / (acre_lot_max - acre_lot_min);
+                    property.zip_code = (zip_code_max - zip_code_min == 0) ? 0 : (property.zip_code.Value - zip_code_min) / (zip_code_max - zip_code_min);
+                    property.house_size = (house_size_max - house_size_min == 0) ? 0 : (property.house_size.Value - house_size_min) / (house_size_max - house_size_min);
+                });
+            }
+
+            return properties;
+        }
+
 
         /// <summary>
         /// Splits data into train and test sets.
