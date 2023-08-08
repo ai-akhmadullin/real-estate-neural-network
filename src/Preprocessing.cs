@@ -5,25 +5,37 @@ using CsvHelper.Configuration.Attributes;
 using MathNet.Numerics.LinearAlgebra;
 
 namespace RealEstate {
+    /// <summary>
+    /// Enumeration representing the available States.
+    /// </summary>
     public enum State { 
         PuertoRico, VirginIslands, Massachusetts, Connecticut, NewHampshire, Vermont, NewJersey, NewYork, SouthCarolina, 
         Tennessee, RhodeIsland, Virginia, Wyoming, Maine, Georgia, Pennsylvania, WestVirginia, Delaware 
     }
 
+    /// <summary>
+    /// Class representing a property with various features.
+    /// </summary>
     public class Property {
-        public double? price { get; set; }
-        public double? bed { get; set; }
-        public double? bath { get; set; }
-        public double? acre_lot { get; set; }
-        public State? state { get; set; }
-        public double? zip_code { get; set; }
-        public double? house_size { get; set; }
+        public double? price { get; set; } // The price in US dollars.
+        public double? bed { get; set; } // The number of bedrooms.
+        public double? bath { get; set; } // The number of bathrooms.
+        public double? acre_lot { get; set; } // Total property/land size in acres.
+        public State? state { get; set; } // The state (e.g. Puerto Rico, Maine, Georgia) in which the property locates.
+        public double? zip_code { get; set; } // Postal code of the area.
+        public double? house_size { get; set; } // Building area/living space in square feet
 
         [Ignore]
-        public int? propertyClass { get; set; }
+        public int? propertyClass { get; set; } // Classifying property based on price range.
     }
 
+    /// <summary>
+    /// Class containing methods for preprocessing real estate data.
+    /// </summary>
     public class Preprocessing {
+        /// <summary>
+        /// Converter to handle the State enumeration in CSV files.
+        /// </summary>
         public class StateEnumConverter : CsvHelper.TypeConversion.DefaultTypeConverter {
             public override object? ConvertFromString(string text, IReaderRow row, MemberMapData memberMapData) {
                 if (string.IsNullOrEmpty(text)) {
@@ -37,19 +49,32 @@ namespace RealEstate {
             }
         }
 
-        public static int UniqueClasses = 5;
+        public static int UniqueClasses = 5; // Number of unique property classes, with 1 as the lowest and `UniqueClasses` as the highest (with the highest price) class.
 
+        /// <summary>
+        /// Loads and preprocesses real estate data from a CSV file.
+        /// </summary>
+        /// <returns>A list of preprocessed properties.</returns>
         public static List<Property> LoadAndPreprocessData() {
             List<Property> properties;
-            using (var reader = new StreamReader("realtor-data.csv"))
-            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture)) {
-                csv.Context.TypeConverterCache.AddConverter<State>(new StateEnumConverter());
-                properties = csv.GetRecords<Property>().ToList();
+            
+            try {
+                using (var reader = new StreamReader("realtor-data.csv"))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture)) {
+                    csv.Context.TypeConverterCache.AddConverter<State>(new StateEnumConverter());
+                    properties = csv.GetRecords<Property>().ToList();
+                }
+            } catch (Exception e) {
+                throw new InvalidOperationException("Error reading CSV file.", e);
             }
 
-            properties = FilterByPercentile(properties);
+            // Keep only those properties whose features are below the 95th percentile, thus removing the properties with peaked features.
+            properties = FilterByPercentile(properties, 0.95);
+
+            // For each property if the value of the feature is null, replace it with an average value.
             FillMissingWithAverage(properties, p => p.zip_code, (p, value) => p.zip_code = value);
 
+            // Classify properties based on the price range.
             double[] prices = properties.Select(p => p.price.Value).ToArray();
             double minPriceThreshold = GetPercentile(prices, 0.2);
             double maxPriceThreshold = GetPercentile(prices, 0.8);
@@ -71,15 +96,21 @@ namespace RealEstate {
                 }
             });
 
+            // Apply z-score normalization on the data before returning it.
             return Standardize(properties);
         }
 
-        public static List<Property> FilterByPercentile(List<Property> properties) {
-            var priceTask = Task.Run(() => GetPercentile(properties.Where(p => p.price.HasValue).Select(p => p.price.Value), 0.95));
-            var bedTask = Task.Run(() => GetPercentile(properties.Where(p => p.bed.HasValue).Select(p => p.bed.Value), 0.95));
-            var bathTask = Task.Run(() => GetPercentile(properties.Where(p => p.bath.HasValue).Select(p => p.bath.Value), 0.95));
-            var acreLotTask = Task.Run(() => GetPercentile(properties.Where(p => p.acre_lot.HasValue).Select(p => p.acre_lot.Value), 0.95));
-            var houseSizeTask = Task.Run(() => GetPercentile(properties.Where(p => p.house_size.HasValue).Select(p => p.house_size.Value), 0.95));
+        /// <summary>
+        /// Filters properties by the `percentile`th percentile for each feature.
+        /// </summary>
+        /// <param name="properties">List of properties to filter.</param>
+        /// <returns>Filtered list of properties.</returns>
+        public static List<Property> FilterByPercentile(List<Property> properties, double percentile) {
+            var priceTask = Task.Run(() => GetPercentile(properties.Where(p => p.price.HasValue).Select(p => p.price.Value), percentile));
+            var bedTask = Task.Run(() => GetPercentile(properties.Where(p => p.bed.HasValue).Select(p => p.bed.Value), percentile));
+            var bathTask = Task.Run(() => GetPercentile(properties.Where(p => p.bath.HasValue).Select(p => p.bath.Value), percentile));
+            var acreLotTask = Task.Run(() => GetPercentile(properties.Where(p => p.acre_lot.HasValue).Select(p => p.acre_lot.Value), percentile));
+            var houseSizeTask = Task.Run(() => GetPercentile(properties.Where(p => p.house_size.HasValue).Select(p => p.house_size.Value), percentile));
 
             Task.WaitAll(priceTask, bedTask, bathTask, acreLotTask, houseSizeTask);
 
@@ -88,7 +119,8 @@ namespace RealEstate {
             var bath_percentile = bathTask.Result;
             var acre_lot_percentile = acreLotTask.Result;
             var house_size_percentile = houseSizeTask.Result;
-
+            
+            // Return only those properties whose features are below the percentile.
             return properties.AsParallel().Where(p =>
                 p.price.HasValue && p.price.Value <= price_percentile && p.price.Value > 1.0 &&
                 p.bed.HasValue && p.bed.Value <= bed_percentile &&
@@ -97,6 +129,12 @@ namespace RealEstate {
                 p.house_size.HasValue && p.house_size.Value <= house_size_percentile).ToList();
         }
 
+        /// <summary>
+        /// Computes the percentile value of a given sequence.
+        /// </summary>
+        /// <param name="sequence">Sequence of values.</param>
+        /// <param name="percentile">Percentile to compute.</param>
+        /// <returns>The value of the specified percentile.</returns>
         public static double GetPercentile(IEnumerable<double> sequence, double percentile) {
             var orderedSequence = sequence.OrderBy(x => x).ToList();
             int N = orderedSequence.Count;
@@ -104,14 +142,23 @@ namespace RealEstate {
             
             int k = (int)Math.Floor(n);
             
+            // If n is an integer, return the value at the index `n-1`.
             if (n == k) {
                 return orderedSequence[k - 1];
             }
 
+            // Otherwise, compute the interpolated value.
             double d = n - k;
             return orderedSequence[k - 1] + d * (orderedSequence[k] - orderedSequence[k - 1]);
         }
 
+        /// <summary>
+        /// Fills missing values in a list with an average value.
+        /// </summary>
+        /// <typeparam name="T">Type of the items in the list.</typeparam>
+        /// <param name="items">List of items.</param>
+        /// <param name="selector">Function to select the value to check.</param>
+        /// <param name="setter">Action to set the value.</param>
         public static void FillMissingWithAverage<T>(List<T> items, Func<T, double?> selector, Action<T, double> setter) {
             if (items.Any(item => selector(item) == null)) {
                 var average = items.Where(item => selector(item) != null).Average(selector);
@@ -122,6 +169,11 @@ namespace RealEstate {
             }
         }
 
+        /// <summary>
+        /// Standardizes the properties using z-score normalization.
+        /// </summary>
+        /// <param name="properties">List of properties to standardize.</param>
+        /// <returns>Standardized list of properties.</returns>
         public static List<Property> Standardize(List<Property> properties) {
             double bed_mean = 0, bed_std = 0, bath_mean = 0, bath_std = 0, acre_lot_mean = 0, acre_lot_std = 0,
                     zip_code_mean = 0, zip_code_std = 0, house_size_mean = 0, house_size_std = 0;
@@ -134,6 +186,10 @@ namespace RealEstate {
                 () => { house_size_mean = properties.Average(p => p.house_size.Value); house_size_std = Math.Sqrt(properties.Average(p => Math.Pow(p.house_size.Value - house_size_mean, 2))); }
             );
 
+            // New value = (x – μ) / σ  ,  where:
+            // x: Original value
+            // μ: Mean of data
+            // σ: Standard deviation of data
             Parallel.ForEach(properties, property => {
                 property.bed = (bed_std == 0) ? 0 : (property.bed.Value - bed_mean) / bed_std;
                 property.bath = (bath_std == 0) ? 0 : (property.bath.Value - bath_mean) / bath_std;
@@ -145,8 +201,12 @@ namespace RealEstate {
             return properties;
         }
 
-
-
+        /// <summary>
+        /// Splits data into train and test sets.
+        /// </summary>
+        /// <param name="data">List of properties to split.</param>
+        /// <param name="trainSizeRatio">Proportion of the data to use for training.</param>
+        /// <returns>Tuple of train and test data and targets.</returns>
         public static (List<Vector<double>>, List<int?>, List<Vector<double>>, List<int?>) SplitData(List<Property> data, double trainSizeRatio) {
             int trainCount = (int)(data.Count * trainSizeRatio);
             var rng = new Random();
@@ -160,6 +220,11 @@ namespace RealEstate {
             return (trainData, trainTargets, testData, testTargets);
         }
 
+        /// <summary>
+        /// Converts a Property object to a feature vector.
+        /// </summary>
+        /// <param name="property">Property object to convert.</param>
+        /// <returns>Feature vector representation of the property.</returns>
         public static Vector<double> PropertyToVector(Property property) {
              var stateOneHot = OneHotEncodeState(property.state ?? State.PuertoRico);
              var features = new List<double> { 
@@ -174,6 +239,11 @@ namespace RealEstate {
             return Vector<double>.Build.DenseOfEnumerable(features);
         }
 
+        /// <summary>
+        /// One-hot encodes a given State.
+        /// </summary>
+        /// <param name="state">State to encode.</param>
+        /// <returns>One-hot encoded representation of the State.</returns>
         public static List<double> OneHotEncodeState(State state) {
             var encoding = new double[Enum.GetValues(typeof(State)).Length];
             encoding[(int)state] = 1;

@@ -1,4 +1,7 @@
 ﻿namespace RealEstate {
+    /// <summary>
+    /// Main class responsible for the user interface and managing the lifecycle of the application.
+    /// </summary>
     class Program {
         public static void Main(string[] args) {
             Console.WriteLine("Welcome to Real Estate Neural Network Predictor!");
