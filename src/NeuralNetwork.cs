@@ -1,6 +1,12 @@
 using MathNet.Numerics.LinearAlgebra;
 
 namespace RealEstate {
+    
+    public enum InitializationMethod {
+        Random,
+        Xavier
+    }
+    
     /// <summary>
     /// Represents a single neuron in the neural network.
     /// </summary>    
@@ -19,18 +25,27 @@ namespace RealEstate {
         /// Initializes a new neuron with randomly assigned weights.
         /// </summary>
         /// <param name="inputCount">The number of input connections to the neuron.</param>
+        /// <param name="method">The method used to initialize the weights.</param>
         /// <exception cref="System.ArgumentOutOfRangeException">
         /// <paramref name="inputCount"/> is not an integer greater than 0.
         /// </exception>
-        public Neuron(int inputCount) {
-            if (inputCount > 0) {
-                var rng = new Random();
-                double stdDev = Math.Sqrt(2.0 / inputCount);
-                weights = Vector<double>.Build.Dense(inputCount, _ => rng.NextDouble() * 2.0 * stdDev - stdDev);
-                bias = 0;
+        public Neuron(int inputCount, InitializationMethod method = InitializationMethod.Random) {
+            if (inputCount <= 0) {
+                throw new ArgumentOutOfRangeException("Invalid number of input connections to the neuron.");
             }
 
-            else throw new ArgumentOutOfRangeException("Invalid number of input connections to the neuron.");
+            var rng = new Random();
+            bias = 0;
+
+            if (method == InitializationMethod.Random) {
+                double stdDev = Math.Sqrt(2.0 / inputCount);
+                weights = Vector<double>.Build.Dense(inputCount, _ => rng.NextDouble() * 2.0 * stdDev - stdDev);
+            }
+            
+            else if (method == InitializationMethod.Xavier) {
+                double limit = Math.Sqrt(6.0 / (inputCount + 1));
+                weights = Vector<double>.Build.Dense(inputCount, _ => rng.NextDouble() * 2.0 * limit - limit);
+            }
         }
 
         /// <summary>
