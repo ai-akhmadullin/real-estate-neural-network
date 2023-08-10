@@ -4,7 +4,7 @@
     /// </summary>
     class Program {
         public static void Main(string[] args) {
-            Console.WriteLine("Welcome to Real Estate Neural Network Predictor!");
+            Console.WriteLine("Welcome to the US Real Estate Prediction System!");
 
             NeuralNetwork neuralNetwork = null;
             List<Property> properties = Preprocessing.LoadAndPreprocessData();

@@ -1,9 +1,26 @@
 using MathNet.Numerics.LinearAlgebra;
 
 namespace RealEstate {
-    
+    /// <summary>
+    /// Specifies the method used to initialize the weights of the neuron.
+    /// </summary>
     public enum InitializationMethod {
+        /// <summary>
+        /// Random Initialization: Weights are initialized using a uniform random distribution 
+        /// within a range derived from the square root of the number of input connections.
+        /// This method can be suitable for most activation functions and helps in breaking symmetry,
+        /// so each neuron learns different features.
+        /// </summary>
         Random,
+
+        /// <summary>
+        /// Xavier Initialization: Also known as Glorot initialization, this method initializes 
+        /// weights with values drawn from a uniform distribution ranging from negative to positive
+        /// square root of 6 divided by the sum of the number of input and output connections.
+        /// It's designed to keep the scale of the gradients roughly the same in all layers,
+        /// which helps in avoiding the vanishing/exploding gradients problem, especially when
+        /// using Sigmoid or hyperbolic tangent (tanh) activation functions.
+        /// </summary>
         Xavier
     }
     

@@ -30,7 +30,7 @@ namespace RealEstate {
         /// <param name="trainData">The train data.</param>
         /// <param name="trainTargets">The target classes for the train data.</param>
         internal static void TrainNeuralNetwork(NeuralNetwork neuralNetwork, List<Vector<double>>? trainData, List<int?>? trainTargets) {
-            int batchSize = 16;
+            int batchSize = 1;
 
             // Batching the train data.
             var trainBatches = trainData.Zip(trainTargets, (d, t) => (inputs: Vector<double>.Build.DenseOfEnumerable(d), target: t))
@@ -42,7 +42,8 @@ namespace RealEstate {
                 var batchInputs = batch.Select(b => b.inputs).ToList();
                 var batchTargets = batch.Select(b => b.target.Value - 1).ToList();
                 neuralNetwork.ForwardPropagation(Matrix<double>.Build.DenseOfRowVectors(batchInputs));
-                neuralNetwork.BackPropagation(Matrix<double>.Build.Dense(batchTargets.Count, Preprocessing.UniqueClasses, (i, j) => j == batchTargets[i] ? 1.0 : 0.0), Matrix<double>.Build.DenseOfRowVectors(batchInputs));
+                neuralNetwork.BackPropagation(Matrix<double>.Build.Dense(batchTargets.Count, Preprocessing.UniqueClasses, 
+                                                (i, j) => j == batchTargets[i] ? 1.0 : 0.0), Matrix<double>.Build.DenseOfRowVectors(batchInputs));
             }
 
             Console.WriteLine("\nThe Neural Network is ready!");

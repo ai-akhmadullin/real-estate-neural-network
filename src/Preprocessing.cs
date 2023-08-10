@@ -69,7 +69,7 @@ namespace RealEstate {
             }
 
             // Keep only those properties whose features are below the 95th percentile, thus removing the properties with peaked features.
-            properties = FilterByPercentile(properties, 0.95).Result;
+            properties = FilterByPercentile(properties, 0.95);
 
             // For each property if the value of the feature is null, replace it with an average value.
             FillMissingWithAverage(properties, p => p.zip_code, (p, value) => p.zip_code = value);
@@ -96,7 +96,7 @@ namespace RealEstate {
                 }
             });
 
-            // Apply z-score normalization on the data before returning it.
+            // Apply z-score normalization (true) or min-max scaling (false) on the data before returning it.
             return Standardize(properties, true);
         }
 
@@ -105,18 +105,20 @@ namespace RealEstate {
         /// </summary>
         /// <param name="properties">List of properties to filter.</param>
         /// <returns>Filtered list of properties.</returns>
-        public static async Task<List<Property>> FilterByPercentile(List<Property> properties, double percentile) {
-            var priceTask = Task.Run(() => GetPercentile(properties.Where(p => p.price.HasValue).Select(p => p.price.Value), percentile));
-            var bedTask = Task.Run(() => GetPercentile(properties.Where(p => p.bed.HasValue).Select(p => p.bed.Value), percentile));
-            var bathTask = Task.Run(() => GetPercentile(properties.Where(p => p.bath.HasValue).Select(p => p.bath.Value), percentile));
-            var acreLotTask = Task.Run(() => GetPercentile(properties.Where(p => p.acre_lot.HasValue).Select(p => p.acre_lot.Value), percentile));
-            var houseSizeTask = Task.Run(() => GetPercentile(properties.Where(p => p.house_size.HasValue).Select(p => p.house_size.Value), percentile));
+        public static List<Property> FilterByPercentile(List<Property> properties, double percentile) {
+            var priceTask = Task.Run(() => GetPercentile(properties.Where(p => p.price.HasValue).Select(p => p.price.Value), 0.95));
+            var bedTask = Task.Run(() => GetPercentile(properties.Where(p => p.bed.HasValue).Select(p => p.bed.Value), 0.95));
+            var bathTask = Task.Run(() => GetPercentile(properties.Where(p => p.bath.HasValue).Select(p => p.bath.Value), 0.95));
+            var acreLotTask = Task.Run(() => GetPercentile(properties.Where(p => p.acre_lot.HasValue).Select(p => p.acre_lot.Value), 0.95));
+            var houseSizeTask = Task.Run(() => GetPercentile(properties.Where(p => p.house_size.HasValue).Select(p => p.house_size.Value), 0.95));
 
-            var price_percentile = await priceTask;
-            var bed_percentile = await bedTask;
-            var bath_percentile = await bathTask;
-            var acre_lot_percentile = await acreLotTask;
-            var house_size_percentile = await houseSizeTask;
+            Task.WhenAll(priceTask, bedTask, bathTask, acreLotTask, houseSizeTask);
+
+            var price_percentile = priceTask.Result;
+            var bed_percentile = bedTask.Result;
+            var bath_percentile = bathTask.Result;
+            var acre_lot_percentile = acreLotTask.Result;
+            var house_size_percentile = houseSizeTask.Result;
             
             // Return only those properties whose features are below the percentile.
             return properties.AsParallel().Where(p =>
@@ -141,7 +143,7 @@ namespace RealEstate {
             
             int k = (int)Math.Floor(n);
             
-            // If n is an integer, return the value at the index `n-1`.
+            // If `n` is an integer, return the value at the index `n-1`.
             if (n == k) {
                 return orderedSequence[k - 1];
             }
@@ -166,38 +168,6 @@ namespace RealEstate {
                     setter(item, average.Value);
                 });
             }
-        }
-
-        /// <summary>
-        /// Standardizes the properties using z-score normalization.
-        /// </summary>
-        /// <param name="properties">List of properties to standardize.</param>
-        /// <returns>Standardized list of properties.</returns>
-        public static List<Property> Standardize(List<Property> properties) {
-            double bed_mean = 0, bed_std = 0, bath_mean = 0, bath_std = 0, acre_lot_mean = 0, acre_lot_std = 0,
-                    zip_code_mean = 0, zip_code_std = 0, house_size_mean = 0, house_size_std = 0;
-
-            Parallel.Invoke(
-                () => { bed_mean = properties.Average(p => p.bed.Value); bed_std = Math.Sqrt(properties.Average(p => Math.Pow(p.bed.Value - bed_mean, 2))); },
-                () => { bath_mean = properties.Average(p => p.bath.Value); bath_std = Math.Sqrt(properties.Average(p => Math.Pow(p.bath.Value - bath_mean, 2))); },
-                () => { acre_lot_mean = properties.Average(p => p.acre_lot.Value); acre_lot_std = Math.Sqrt(properties.Average(p => Math.Pow(p.acre_lot.Value - acre_lot_mean, 2))); },
-                () => { zip_code_mean = properties.Average(p => p.zip_code.Value); zip_code_std = Math.Sqrt(properties.Average(p => Math.Pow(p.zip_code.Value - zip_code_mean, 2))); },
-                () => { house_size_mean = properties.Average(p => p.house_size.Value); house_size_std = Math.Sqrt(properties.Average(p => Math.Pow(p.house_size.Value - house_size_mean, 2))); }
-            );
-
-            // New value = (x – μ) / σ  ,  where:
-            // x: Original value
-            // μ: Mean of data
-            // σ: Standard deviation of data
-            Parallel.ForEach(properties, property => {
-                property.bed = (bed_std == 0) ? 0 : (property.bed.Value - bed_mean) / bed_std;
-                property.bath = (bath_std == 0) ? 0 : (property.bath.Value - bath_mean) / bath_std;
-                property.acre_lot = (acre_lot_std == 0) ? 0 : (property.acre_lot.Value - acre_lot_mean) / acre_lot_std;
-                property.zip_code = (zip_code_std == 0) ? 0 : (property.zip_code.Value - zip_code_mean) / zip_code_std;
-                property.house_size = (house_size_std == 0) ? 0 : (property.house_size.Value - house_size_mean) / house_size_std;
-            });
-
-            return properties;
         }
 
         /// <summary>

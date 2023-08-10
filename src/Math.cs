@@ -63,3 +63,26 @@ public class IdentityFunction : IActivationFunction {
     }
 }
 
+/// <summary>
+/// Represents the Sigmoid activation function.
+/// </summary>
+public class SigmoidFunction : IActivationFunction {
+    /// <summary>
+    /// Activates the input using the Sigmoid function: f(x) = 1 / (1 + exp(-x)).
+    /// </summary>
+    /// <param name="x">The input value.</param>
+    /// <returns>The activated value.</returns>
+    public double Activate(double x) {
+        return 1 / (1 + Math.Exp(-x));
+    }
+
+    /// <summary>
+    /// Computes the derivative of the Sigmoid function: f'(x) = f(x) * (1 - f(x)).
+    /// </summary>
+    /// <param name="x">The input value.</param>
+    /// <returns>The derived value.</returns>
+    public double Derivate(double x) {
+        double fx = Activate(x);
+        return fx * (1 - fx);
+    }
+}
